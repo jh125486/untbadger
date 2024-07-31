@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/base64"
+	"fmt"
 	"image/color"
 	"image/png"
 	"io"
@@ -15,13 +15,6 @@ import (
 	"tinygo.org/x/tinyfont/freesans"
 	"tinygo.org/x/tinyfont/freeserif"
 )
-
-func profile() {
-	display.ClearDisplay()
-	display.WaitUntilIdle()
-
-	badgeProfile()
-}
 
 type font []*tinyfont.Font
 
@@ -64,104 +57,118 @@ var (
 	}
 )
 
-const untEagle = `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`
-
-//const untEagle = []uint8{0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x7,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0xF,0x80,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0xFF,0x80,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0xEE,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x3,0xDE,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x7,0xFE,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0xF,0xFC,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1F,0xFC,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x3F,0xF8,0xC,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x7F,0xF8,0x1E,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0xFF,0xF8,0x1C,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0xE5,0xF0,0x18,0x0,0x0,0x0,0x0,0x0,0x1,0xEB,0x1F,0xF8,0x1C,0x0,0x0,0x0,0x0,0x0,0x1F,0xFC,0xFF,0xFC,0x7C,0x0,0x0,0x0,0x0,0x0,0x7F,0xF3,0xFF,0xFC,0xFE,0x0,0x0,0x0,0x0,0x1,0xFF,0xC7,0xFF,0xFF,0xFF,0x0,0x0,0x0,0x0,0x7,0xFF,0x9F,0xFF,0xFF,0xF8,0x0,0x0,0x0,0x0,0x1F,0xFE,0x3F,0xFF,0xFF,0xF0,0x0,0x0,0x0,0x0,0x3F,0xFE,0x7F,0xFF,0xFF,0xE0,0x0,0x0,0x0,0x0,0x7F,0xF8,0xFF,0xFF,0xFF,0xC0,0x0,0x0,0x0,0x0,0xFF,0xF9,0xFF,0xFF,0xFF,0x80,0x0,0x0,0x0,0x3,0xFF,0xE3,0xFF,0xFF,0xFF,0x0,0x0,0x0,0x0,0x7,0xFF,0xE7,0xFF,0xFF,0xFE,0x0,0x0,0x0,0x0,0xF,0xEF,0xCF,0xFF,0xFF,0xFC,0x0,0x0,0x0,0x0,0x1F,0xDF,0x9F,0xFF,0xFF,0xF8,0x0,0x0,0x0,0x0,0x3F,0xBF,0x3F,0xFF,0xFF,0xF0,0x0,0x0,0x0,0x0,0x7F,0x7E,0x7F,0xFF,0xFF,0xE0,0x0,0x0,0x0,0x0,0xFE,0xFC,0xFF,0xFF,0xFF,0xE0,0x0,0x0,0x0,0x1,0xF9,0xF9,0xFF,0xFF,0xFF,0xC0,0x0,0x0,0x0,0x7,0xFB,0xF3,0xFF,0xFF,0xFF,0xC0,0x0,0x0,0x0,0xF,0xE7,0xE7,0xFF,0xFF,0xFF,0xC0,0x0,0x0,0x0,0x1F,0xCF,0xCF,0xFF,0xFF,0xFF,0xC0,0x0,0x0,0x0,0x3F,0x9F,0x8F,0xEF,0xDF,0xFF,0xE0,0x0,0x0,0x0,0x7F,0x3F,0x3F,0xDF,0x9F,0xFF,0xE0,0x0,0x0,0x0,0xFE,0x7F,0x3F,0x9F,0xBE,0xFF,0xE0,0x0,0x0,0x3,0xFC,0xFC,0x7F,0xBF,0x7E,0xFF,0xE0,0x0,0x0,0x3,0xF9,0xFC,0xFF,0x7E,0x7C,0xFE,0xF0,0x0,0x0,0xF,0xF3,0xF1,0xFE,0xFE,0xF8,0xFF,0xF0,0x0,0x0,0x1F,0xE7,0xF3,0xFD,0xFD,0xF8,0xFE,0xF0,0x0,0x0,0x3F,0xCF,0xE7,0xF9,0xFB,0xF0,0xFE,0xF8,0x0,0x0,0x7F,0x9F,0xCF,0xFB,0xF3,0xE0,0xFF,0x78,0x0,0x0,0xFF,0x3F,0x9F,0xF7,0xF7,0xE0,0xFF,0x78,0x0,0x1,0xFE,0x7F,0x3F,0xEF,0xEF,0xC0,0xFF,0x78,0x0,0x3,0xFC,0xFE,0x7F,0xCF,0xCF,0xC0,0xFF,0x70,0x0,0xF,0xF9,0xFC,0xFF,0x9F,0xDF,0x80,0xF7,0x60,0x0,0x1F,0xF7,0xF9,0xFF,0xBF,0xBF,0x80,0xF7,0xC0,0x0,0xF,0xE7,0xF3,0xFF,0x7F,0x3F,0x0,0xF7,0x80,0x0,0x3,0x81,0xE7,0xFE,0xFF,0x7E,0x0,0xF7,0x0,0x0,0x0,0x0,0x7,0xFC,0xFE,0xFE,0x0,0xF6,0x0,0x0,0x0,0x0,0x1F,0xF9,0xFC,0xFC,0x0,0xF4,0x0,0x0,0x0,0x0,0x1F,0xFB,0xFD,0xFC,0x0,0xF4,0x0,0x0,0x0,0x0,0x3F,0xF7,0xFB,0xF8,0x0,0xF0,0x0,0x0,0x0,0x0,0x7F,0xE7,0xF3,0xF0,0x0,0xE0,0x0,0x0,0x0,0x0,0xFF,0xCF,0xE7,0xF0,0x0,0xE0,0x0,0x0,0x0,0x1,0xFF,0x9F,0xEF,0xE0,0x0,0xC0,0x0,0x0,0x0,0x3,0xFF,0xBF,0xCF,0xE0,0x1,0x80,0x0,0x0,0x0,0x7,0xFF,0x3F,0x9F,0xC0,0x0,0x0,0x0,0x0,0x0,0xF,0xFE,0x7F,0xBF,0x80,0x0,0x0,0x0,0x0,0x0,0x1F,0xFC,0xFF,0x3F,0x80,0x0,0x0,0x0,0x0,0x0,0x3F,0xF9,0xFE,0x7F,0x0,0x0,0x0,0x0,0x0,0x0,0x7F,0xF3,0xFE,0xFF,0x0,0x0,0x0,0x0,0x0,0x0,0xFF,0xF3,0xFC,0xFE,0x0,0x0,0x0,0x0,0x0,0x1,0xFF,0xE7,0xF9,0xFC,0x0,0x0,0x0,0x0,0x0,0x1,0xFF,0xCF,0xF3,0xFC,0x0,0x0,0x0,0x0,0x0,0x7,0xFF,0x9F,0xF3,0xF8,0x0,0x0,0x0,0x0,0x0,0x7,0xFF,0x3F,0xE7,0xF8,0x0,0x0,0x0,0x0,0x0,0x3F,0xFF,0x3F,0xCF,0xF0,0x0,0x0,0x0,0x0,0x0,0x7F,0xFE,0x7F,0xCF,0xE0,0x0,0x0,0x0,0x0,0x0,0x1F,0xFC,0xFF,0xBF,0xE0,0x0,0x0,0x0,0x0,0x0,0x3,0xF9,0xFF,0x3F,0xC0,0x0,0x0,0x0,0x0,0x0,0x0,0xF0,0xFF,0x7,0x80,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x3C,0x1,0x0,0x0,0x0,0x0,0x0,0x0}
-
-func base64Reader(s string) io.Reader {
-	return base64.NewDecoder(base64.StdEncoding, strings.NewReader(s))
+type Item struct {
+	label string
+	img   pixel.Image[pixel.Monochrome]
 }
 
-type (
-	Item struct {
-		label string
-		img   pixel.Image[pixel.Monochrome]
-	}
-	SidebarItems struct {
-		currIdx int
-		items   []*Item
-	}
-)
-
-func (q *SidebarItems) Curr() *Item {
-	return q.items[q.currIdx]
-}
-
-func (q *SidebarItems) Inc() {
-	q.currIdx = (q.currIdx + 1) % len(q.items)
-}
-
-func (q *SidebarItems) Dec() {
-	q.currIdx = (q.currIdx - 1 + len(q.items)) % len(q.items)
-}
-
-var sidebar = SidebarItems{
-	items: []*Item{
-		{
-			img: ConvertPNGToMonochrome(base64Reader(untEagle)),
-		},
-		{
-			label: "Email",
-			img:   qrToImage("mailto:jacob.hochstetler@unt.edu"),
-		},
-		{
-			label: "CSE WWW",
-			img:   qrToImage("https://computerscience.engineering.unt.edu/"),
-		},
-		{
-			label: "LinkedIn",
-			img:   qrToImage("https://www.linkedin.com/in/jacob-hochstetler/"),
-		},
+var sidebar = []*Item{
+	{
+		label: Pronouns,
+		img:   ConvertPNGToMonochrome(base64Reader(untEagle2)),
+	},
+	{
+		label: "Email",
+		img:   qrToImage(fmt.Sprintf("mailto:%v.%v@unt.edu", FName, LName)),
+	},
+	{
+		label: "CSE WWW",
+		img:   qrToImage("https://computerscience.engineering.unt.edu/"),
 	},
 }
 
 const (
-	headerBottom = 28
+	headerBottom = 25
 	rMargin      = 208
 )
 
-func badgeProfile() {
+func showBadge() {
+	display.ClearDisplay()
+	display.WaitUntilIdle()
+
 	fillRect(0, 0, WIDTH, headerBottom, black)
-	_ = fitTextToWidth("University of North Texas", 0, WIDTH, 22, white, sansRegularFont...)
-	_ = fitTextToWidth("   Jacob   ", 0, rMargin, 66, black, &freesans.Bold24pt7b)
-	_ = fitTextToWidth("Hochstetler", 0, rMargin, 98, black, &freesans.Bold18pt7b)
-	_ = fitTextToWidth("Professor | he/him", 1, rMargin, 122, black, monoBoldFont...)
+	_ = fitTextToWidth("University of North Texas", 0, WIDTH, 19, white, sansRegularFont...)
+	// center first and last name
+	fname, lname := CenterStrings(FName, LName)
+	_ = fitTextToWidth(fname, 0, rMargin, 66, black, &freesans.Bold24pt7b)
+	_ = fitTextToWidth(lname, 0, rMargin, 98, black, &freesans.Bold18pt7b)
+	_ = fitTextToWidth(Title, 1, rMargin, 122, black, monoBoldFont...)
 
 	display.Display()
-	var prevQR *Item
+	display.WaitUntilIdle()
+
+	if LinkedIn != "" {
+		sidebar = append(sidebar, &Item{
+			label: "LinkedIn",
+			img:   qrToImage("https://www.linkedin.com/in/" + LinkedIn + "/"),
+		})
+	}
+
+	sidebarMenu()
+}
+
+func CenterStrings(s1, s2 string) (string, string) {
+	maxLen := max(len(s1), len(s2)) // Use built-in max function
+	return centerString(s1, maxLen), centerString(s2, maxLen)
+}
+
+// centerString centers the string with spaces based on the given length.
+func centerString(s string, length int) string {
+	padTotal := length - len(s)
+	leftPad := padTotal / 2
+	rightPad := padTotal - leftPad
+
+	return strings.Repeat(" ", leftPad) + s + strings.Repeat(" ", rightPad)
+}
+
+func sidebarMenu() {
+	selected := int16(0)
+	indicatorHeight := int16(qrSize / len(sidebar))
+	drawSidebar(sidebar[selected].label, sidebar[selected].img)
+	fillRect(WIDTH-2, 48+selected*indicatorHeight, 2, indicatorHeight, black)
+	display.Display()
+
+	released := true
 	for {
-		if qr := sidebar.Curr(); prevQR != qr {
-			drawSidebar(qr.label, qr.img)
-			prevQR = qr
+		if released && btnUp.Get() && selected > 0 {
+			led.High()
+			selected--
+			drawSidebar(sidebar[selected].label, sidebar[selected].img)
+			fillRect(WIDTH-2, 48+selected*indicatorHeight, 2, indicatorHeight, black)
+			fillRect(WIDTH-2, 48+(selected+1)*indicatorHeight, 2, indicatorHeight, white)
 			display.Display()
 			led.Low()
 		}
-		switch {
-		case btnUp.Get():
+		if released && btnDown.Get() && selected < int16(len(sidebar)-1) {
 			led.High()
-			sidebar.Dec()
-		case btnDown.Get():
-			led.High()
-			sidebar.Inc()
-		default:
-			time.Sleep(200 * time.Millisecond)
+			selected++
+			drawSidebar(sidebar[selected].label, sidebar[selected].img)
+			fillRect(WIDTH-2, 48+selected*indicatorHeight, 2, indicatorHeight, black)
+			fillRect(WIDTH-2, 48+(selected-1)*indicatorHeight, 2, indicatorHeight, white)
+			display.Display()
+			led.Low()
 		}
+		released = !btnA.Get() && !btnB.Get() && !btnC.Get() && !btnUp.Get() && !btnDown.Get()
+		time.Sleep(200 * time.Millisecond)
 	}
 }
 
 func drawSidebar(label string, img pixel.Image[pixel.Monochrome]) {
-	fillRect(rMargin, headerBottom+2, WIDTH-rMargin, 32, white)
+	const (
+		headerStart = rMargin - 4
+		headerWidth = WIDTH - headerStart
+	)
+	fillRect(headerStart, headerBottom+1, headerWidth, HEIGHT-headerBottom, white)
 	if label != "" {
-		_ = fitTextToWidth(label, rMargin, qrSize, 44, black, monoBoldObliqueFont...)
-		if err := display.DrawBitmap(rMargin+2, HEIGHT-qrSize, img); err != nil {
-			panic(err)
-		}
-		return
+		// draw header from top of screen
+		_, f := lineWidth(label, uint32(headerWidth), monoBoldObliqueFont...)
+		lineH := f.GetGlyph(rune(label[0])).Info().Height
+		fitTextToWidth(label, headerStart, headerWidth, int16(headerBottom+lineH+1), black, f)
 	}
-	_, h := img.Size()
-	if err := display.DrawBitmap(rMargin+2, HEIGHT-int16(h), img); err != nil {
-		panic(err)
-	}
+
+	// draw image from bottom of screen
+	_, imgH := img.Size()
+	display.DrawBitmap(rMargin+2, int16(HEIGHT-imgH-1), img)
 }
 
 const qrSize = 80
@@ -184,20 +191,24 @@ func qrToImage(content string) pixel.Image[pixel.Monochrome] {
 }
 
 func fitTextToWidth(text string, x0, x1, y int16, c color.RGBA, fonts ...*tinyfont.Font) *tinyfont.Font {
-	for _, f := range fonts {
-		if w32, _ := tinyfont.LineWidth(f, text); w32 < uint32(x1) {
-			tinyfont.WriteLine(&display, f, x0+(x1-int16(w32))/2, y, text, c)
-			return f
-		}
-	}
-	// fallthrough to the last font
-	f := fonts[len(fonts)-1]
-	tinyfont.WriteLine(&display, f, x0, y, text, c)
+	w32, f := lineWidth(text, uint32(x1-x0), fonts...)
+	tinyfont.WriteLine(&display, f, x0+(x1-int16(w32))/2, y, text, c)
 
 	return f
 }
 
-func fillRect(x int16, y int16, w int16, h int16, c color.RGBA) {
+func lineWidth(text string, maxWidth uint32, fonts ...*tinyfont.Font) (uint32, *tinyfont.Font) {
+	for _, f := range fonts {
+		if w32, _ := tinyfont.LineWidth(f, text); w32 < maxWidth {
+			return w32, f
+		}
+	}
+
+	// fallthrough to the last font
+	return maxWidth, fonts[len(fonts)-1]
+}
+
+func fillRect(x, y, w, h int16, c color.RGBA) {
 	for i := x; i < x+w; i++ {
 		for j := y; j < y+h; j++ {
 			display.SetPixel(i, j, c)
