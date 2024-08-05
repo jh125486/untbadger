@@ -63,8 +63,8 @@ func configGlobals() {
 
 func splashScreen() {
 	display.ClearDisplay()
-	display.DrawBuffer(0, 0, 128, 296, untLogo)
+	display.DrawBuffer(0, 0, HEIGHT, WIDTH, untLogo)
 	display.Display()
 	display.WaitUntilIdle()
-	time.Sleep(3 * time.Second)
+	time.Sleep(time.Second)
 }

@@ -59,21 +59,21 @@ var (
 
 type Item struct {
 	label string
-	img   pixel.Image[pixel.Monochrome]
+	img   []uint8
 }
 
 var sidebar = []*Item{
 	{
 		label: Pronouns,
-		img:   ConvertPNGToMonochrome(base64Reader(untEagle2)),
+		img:   untEagle,
 	},
 	{
 		label: "Email",
-		img:   qrToImage(fmt.Sprintf("mailto:%v.%v@unt.edu", FName, LName)),
+		img:   qrToBuffer(fmt.Sprintf("mailto:%v.%v@unt.edu", FName, LName)),
 	},
 	{
-		label: "CSE WWW",
-		img:   qrToImage("https://computerscience.engineering.unt.edu/"),
+		label: "W W W",
+		img:   qrToBuffer("https://computerscience.engineering.unt.edu/"),
 	},
 }
 
@@ -94,13 +94,13 @@ func showBadge() {
 	_ = fitTextToWidth(lname, 0, rMargin, 98, black, &freesans.Bold18pt7b)
 	_ = fitTextToWidth(Title, 1, rMargin, 122, black, monoBoldFont...)
 
-	display.Display()
-	display.WaitUntilIdle()
+	//display.Display()
+	//display.WaitUntilIdle()
 
 	if LinkedIn != "" {
 		sidebar = append(sidebar, &Item{
 			label: "LinkedIn",
-			img:   qrToImage("https://www.linkedin.com/in/" + LinkedIn + "/"),
+			img:   qrToBuffer("https://www.linkedin.com/in/" + LinkedIn + "/"),
 		})
 	}
 
@@ -128,32 +128,27 @@ func sidebarMenu() {
 	fillRect(WIDTH-2, 48+selected*indicatorHeight, 2, indicatorHeight, black)
 	display.Display()
 
-	released := true
 	for {
-		if released && btnUp.Get() && selected > 0 {
-			led.High()
+		switch {
+		case btnUp.Get() && selected > 0:
 			selected--
 			drawSidebar(sidebar[selected].label, sidebar[selected].img)
 			fillRect(WIDTH-2, 48+selected*indicatorHeight, 2, indicatorHeight, black)
 			fillRect(WIDTH-2, 48+(selected+1)*indicatorHeight, 2, indicatorHeight, white)
 			display.Display()
-			led.Low()
-		}
-		if released && btnDown.Get() && selected < int16(len(sidebar)-1) {
-			led.High()
+		case btnDown.Get() && selected < int16(len(sidebar)-1):
 			selected++
 			drawSidebar(sidebar[selected].label, sidebar[selected].img)
 			fillRect(WIDTH-2, 48+selected*indicatorHeight, 2, indicatorHeight, black)
 			fillRect(WIDTH-2, 48+(selected-1)*indicatorHeight, 2, indicatorHeight, white)
 			display.Display()
-			led.Low()
+		default:
+			time.Sleep(200 * time.Millisecond)
 		}
-		released = !btnA.Get() && !btnB.Get() && !btnC.Get() && !btnUp.Get() && !btnDown.Get()
-		time.Sleep(200 * time.Millisecond)
 	}
 }
 
-func drawSidebar(label string, img pixel.Image[pixel.Monochrome]) {
+func drawSidebar(label string, img []uint8) {
 	const (
 		headerStart = rMargin - 4
 		headerWidth = WIDTH - headerStart
@@ -166,12 +161,21 @@ func drawSidebar(label string, img pixel.Image[pixel.Monochrome]) {
 		fitTextToWidth(label, headerStart, headerWidth, int16(headerBottom+lineH+1), black, f)
 	}
 
-	// draw image from bottom of screen
-	_, imgH := img.Size()
-	display.DrawBitmap(rMargin+2, int16(HEIGHT-imgH-1), img)
+	// DrawBuffer draws from the top right corner.
+	display.DrawBuffer(HEIGHT-80, 6, 80, 80, img)
 }
 
 const qrSize = 80
+
+func qrToBuffer(context string) []uint8 {
+	q, err := qrcode.New(context, qrcode.Medium)
+	if err != nil {
+		panic(err)
+	}
+	q.DisableBorder = true
+
+	return ditherImage(q.Image(qrSize))
+}
 
 func qrToImage(content string) pixel.Image[pixel.Monochrome] {
 	q, err := qrcode.New(content, qrcode.Medium)
