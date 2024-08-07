@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image/color"
 	"image/png"
 	"io"
@@ -75,8 +74,6 @@ type SidebarItem struct {
 	largeItem LargeItem
 }
 
-var emailAddr = fmt.Sprintf("mailto:%v.%v@unt.edu", FName, LName)
-
 var sidebar = []*SidebarItem{
 	{
 		label: Pronouns,
@@ -95,18 +92,18 @@ var sidebar = []*SidebarItem{
 	},
 	{
 		label: "Email",
-		img:   qrToBuffer(emailAddr, qrSmSize),
+		img:   qrToBuffer("mailto:"+Email, qrSmSize),
 		largeItem: LargeItem{
 			label:       "Email",
 			labelX0:     0,
 			labelX1:     WIDTH - qrLgSize - (HEIGHT - qrLgSize),
 			labelY:      HEIGHT/2 + 8,
-			img:         qrToBuffer(emailAddr, qrLgSize),
+			img:         qrToBuffer("mailto:"+Email, qrLgSize),
 			imgX:        (HEIGHT-qrLgSize)/2 - 12,
 			imgY:        (HEIGHT - qrLgSize) / 2,
 			imgWidth:    qrLgSize,
 			imgHeight:   qrLgSize,
-			labelBottom: fmt.Sprintf("%v.%v@unt.edu", FName, LName),
+			labelBottom: Email,
 		},
 	},
 	{
@@ -117,12 +114,28 @@ var sidebar = []*SidebarItem{
 			labelX0:     0,
 			labelX1:     WIDTH - qrLgSize - (HEIGHT - qrLgSize),
 			labelY:      HEIGHT/2 + 8,
-			img:         qrToBuffer(emailAddr, qrLgSize),
+			img:         qrToBuffer("https://computerscience.engineering.unt.edu/", qrLgSize),
 			imgX:        (HEIGHT-qrLgSize)/2 - 12,
 			imgY:        (HEIGHT - qrLgSize) / 2,
 			imgWidth:    qrLgSize,
 			imgHeight:   qrLgSize,
 			labelBottom: "Computer Science & Engineering",
+		},
+	},
+	{
+		label: "LinkedIn",
+		img:   qrToBuffer("https://www.linkedin.com/in/"+LinkedIn+"/", qrSmSize),
+		largeItem: LargeItem{
+			label:       "LinkedIn",
+			labelX0:     0,
+			labelX1:     WIDTH - qrLgSize - (HEIGHT - qrLgSize),
+			labelY:      HEIGHT/2 + 8,
+			img:         qrToBuffer("https://www.linkedin.com/in/"+LinkedIn+"/", qrLgSize),
+			imgX:        (HEIGHT-qrLgSize)/2 - 12,
+			imgY:        (HEIGHT - qrLgSize) / 2,
+			imgWidth:    qrLgSize,
+			imgHeight:   qrLgSize,
+			labelBottom: "Jacob Hochstetler",
 		},
 	},
 }
@@ -141,25 +154,25 @@ const (
 )
 
 func showBadge() {
-	drawBadgeBackground()
+	//if LinkedIn != "" {
+	//	sidebar = append(sidebar, &SidebarItem{
+	//		label: "LinkedIn",
+	//		img:   qrToBuffer("https://www.linkedin.com/in/"+LinkedIn+"/", qrSmSize),
+	//		largeItem: LargeItem{
+	//			label:     "LinkedIn",
+	//			labelX0:   0,
+	//			labelX1:   WIDTH - qrLgSize - (HEIGHT - qrLgSize),
+	//			labelY:    HEIGHT/2 + 8,
+	//			img:       qrToBuffer("https://www.linkedin.com/in/"+LinkedIn+"/", qrLgSize),
+	//			imgX:      (HEIGHT-qrLgSize)/2 - 12,
+	//			imgY:      (HEIGHT - qrLgSize) / 2,
+	//			imgWidth:  qrLgSize,
+	//			imgHeight: qrLgSize,
+	//		},
+	//	})
+	//}
 
-	if LinkedIn != "" {
-		sidebar = append(sidebar, &SidebarItem{
-			label: "LinkedIn",
-			img:   qrToBuffer("https://www.linkedin.com/in/"+LinkedIn+"/", qrSmSize),
-			largeItem: LargeItem{
-				label:     "LinkedIn",
-				labelX0:   0,
-				labelX1:   WIDTH - qrLgSize - (HEIGHT - qrLgSize),
-				labelY:    HEIGHT/2 + 8,
-				img:       qrToBuffer("https://www.linkedin.com/in/"+LinkedIn+"/", qrLgSize),
-				imgX:      (HEIGHT-qrLgSize)/2 - 12,
-				imgY:      (HEIGHT - qrLgSize) / 2,
-				imgWidth:  qrLgSize,
-				imgHeight: qrLgSize,
-			},
-		})
-	}
+	drawBadgeBackground()
 
 	sidebarMenu()
 }
@@ -173,8 +186,8 @@ func drawBadgeBackground() {
 	// center first and last name
 	fname, lname := CenterStrings(FName, LName)
 	_ = fitTextToWidth(fname, 0, rMargin, 66, black, &freesans.Bold24pt7b)
-	_ = fitTextToWidth(lname, 0, rMargin, 98, black, &freesans.Bold18pt7b)
-	_ = fitTextToWidth(Title, 0, rMargin, 122, black, monoBoldFont...)
+	_ = fitTextToWidth(lname, 0, rMargin, 100, black, &freesans.Bold18pt7b)
+	_ = fitTextToWidth(Title, 0, rMargin, 122, black, &freesans.Regular9pt7b)
 }
 
 func CenterStrings(s1, s2 string) (string, string) {
@@ -249,12 +262,12 @@ func drawSidebarItem(label string, img []uint8) {
 		headerStart = rMargin - 4
 		headerWidth = WIDTH - headerStart
 	)
-	fillRect(headerStart, headerBottom+1, headerWidth, HEIGHT-headerBottom, white)
+	fillRect(headerStart, headerBottom, headerWidth, HEIGHT-headerBottom, white)
 	if label != "" {
 		// draw header from top of screen
 		_, f := lineWidth(label, uint32(headerWidth), monoBoldObliqueFont...)
 		lineH := f.GetGlyph(rune(label[0])).Info().Height
-		fitTextToWidth(label, headerStart, headerWidth, int16(headerBottom+lineH+1), black, f)
+		fitTextToWidth(label, headerStart, headerWidth, int16(headerBottom+lineH+3), black, f)
 	}
 
 	// DrawBuffer draws from the top right corner.
