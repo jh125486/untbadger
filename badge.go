@@ -25,6 +25,18 @@ var (
 		&freesans.Regular12pt7b,
 		&freesans.Regular9pt7b,
 	}
+	sansObliqueFont = font{
+		&freesans.Oblique24pt7b,
+		&freesans.Oblique18pt7b,
+		&freesans.Oblique12pt7b,
+		&freesans.Oblique9pt7b,
+	}
+	sansBoldObliqueFont = font{
+		&freesans.BoldOblique24pt7b,
+		&freesans.BoldOblique18pt7b,
+		&freesans.BoldOblique12pt7b,
+		&freesans.BoldOblique9pt7b,
+	}
 	sansBoldFont = font{
 		&freesans.Bold24pt7b,
 		&freesans.Bold18pt7b,
@@ -57,24 +69,70 @@ var (
 	}
 )
 
-type Item struct {
-	label string
-	img   []uint8
+type SidebarItem struct {
+	label     string
+	img       []uint8
+	largeItem LargeItem
 }
 
-var sidebar = []*Item{
+var emailAddr = fmt.Sprintf("mailto:%v.%v@unt.edu", FName, LName)
+
+var sidebar = []*SidebarItem{
 	{
 		label: Pronouns,
 		img:   untEagle,
+		largeItem: LargeItem{
+			label:     FName,
+			labelX0:   120,
+			labelX1:   WIDTH - 10,
+			labelY:    126,
+			img:       untLogo,
+			imgX:      0,
+			imgY:      0,
+			imgWidth:  HEIGHT,
+			imgHeight: WIDTH,
+		},
 	},
 	{
 		label: "Email",
-		img:   qrToBuffer(fmt.Sprintf("mailto:%v.%v@unt.edu", FName, LName)),
+		img:   qrToBuffer(emailAddr, qrSmSize),
+		largeItem: LargeItem{
+			label:       "Email",
+			labelX0:     0,
+			labelX1:     WIDTH - qrLgSize - (HEIGHT - qrLgSize),
+			labelY:      HEIGHT/2 + 8,
+			img:         qrToBuffer(emailAddr, qrLgSize),
+			imgX:        (HEIGHT-qrLgSize)/2 - 12,
+			imgY:        (HEIGHT - qrLgSize) / 2,
+			imgWidth:    qrLgSize,
+			imgHeight:   qrLgSize,
+			labelBottom: fmt.Sprintf("%v.%v@unt.edu", FName, LName),
+		},
 	},
 	{
 		label: "W W W",
-		img:   qrToBuffer("https://computerscience.engineering.unt.edu/"),
+		img:   qrToBuffer("https://computerscience.engineering.unt.edu/", qrSmSize),
+		largeItem: LargeItem{
+			label:       "W W W",
+			labelX0:     0,
+			labelX1:     WIDTH - qrLgSize - (HEIGHT - qrLgSize),
+			labelY:      HEIGHT/2 + 8,
+			img:         qrToBuffer(emailAddr, qrLgSize),
+			imgX:        (HEIGHT-qrLgSize)/2 - 12,
+			imgY:        (HEIGHT - qrLgSize) / 2,
+			imgWidth:    qrLgSize,
+			imgHeight:   qrLgSize,
+			labelBottom: "Computer Science & Engineering",
+		},
 	},
+}
+
+type LargeItem struct {
+	label                           string
+	labelX0, labelX1, labelY        int16
+	img                             []uint8
+	imgX, imgY, imgWidth, imgHeight int16
+	labelBottom                     string
 }
 
 const (
@@ -83,6 +141,30 @@ const (
 )
 
 func showBadge() {
+	drawBadgeBackground()
+
+	if LinkedIn != "" {
+		sidebar = append(sidebar, &SidebarItem{
+			label: "LinkedIn",
+			img:   qrToBuffer("https://www.linkedin.com/in/"+LinkedIn+"/", qrSmSize),
+			largeItem: LargeItem{
+				label:     "LinkedIn",
+				labelX0:   0,
+				labelX1:   WIDTH - qrLgSize - (HEIGHT - qrLgSize),
+				labelY:    HEIGHT/2 + 8,
+				img:       qrToBuffer("https://www.linkedin.com/in/"+LinkedIn+"/", qrLgSize),
+				imgX:      (HEIGHT-qrLgSize)/2 - 12,
+				imgY:      (HEIGHT - qrLgSize) / 2,
+				imgWidth:  qrLgSize,
+				imgHeight: qrLgSize,
+			},
+		})
+	}
+
+	sidebarMenu()
+}
+
+func drawBadgeBackground() {
 	display.ClearDisplay()
 	display.WaitUntilIdle()
 
@@ -92,19 +174,7 @@ func showBadge() {
 	fname, lname := CenterStrings(FName, LName)
 	_ = fitTextToWidth(fname, 0, rMargin, 66, black, &freesans.Bold24pt7b)
 	_ = fitTextToWidth(lname, 0, rMargin, 98, black, &freesans.Bold18pt7b)
-	_ = fitTextToWidth(Title, 1, rMargin, 122, black, monoBoldFont...)
-
-	//display.Display()
-	//display.WaitUntilIdle()
-
-	if LinkedIn != "" {
-		sidebar = append(sidebar, &Item{
-			label: "LinkedIn",
-			img:   qrToBuffer("https://www.linkedin.com/in/" + LinkedIn + "/"),
-		})
-	}
-
-	sidebarMenu()
+	_ = fitTextToWidth(Title, 0, rMargin, 122, black, monoBoldFont...)
 }
 
 func CenterStrings(s1, s2 string) (string, string) {
@@ -121,34 +191,60 @@ func centerString(s string, length int) string {
 	return strings.Repeat(" ", leftPad) + s + strings.Repeat(" ", rightPad)
 }
 
+var selected = int16(0)
+
 func sidebarMenu() {
-	selected := int16(0)
-	indicatorHeight := int16(qrSize / len(sidebar))
-	drawSidebar(sidebar[selected].label, sidebar[selected].img)
-	fillRect(WIDTH-2, 48+selected*indicatorHeight, 2, indicatorHeight, black)
-	display.Display()
+	indicatorHeight := int16(qrSmSize / len(sidebar))
+	drawSidebarContainer(indicatorHeight)
 
 	for {
 		switch {
 		case btnUp.Get() && selected > 0:
 			selected--
-			drawSidebar(sidebar[selected].label, sidebar[selected].img)
-			fillRect(WIDTH-2, 48+selected*indicatorHeight, 2, indicatorHeight, black)
-			fillRect(WIDTH-2, 48+(selected+1)*indicatorHeight, 2, indicatorHeight, white)
-			display.Display()
+			drawSidebarContainer(indicatorHeight)
 		case btnDown.Get() && selected < int16(len(sidebar)-1):
 			selected++
-			drawSidebar(sidebar[selected].label, sidebar[selected].img)
-			fillRect(WIDTH-2, 48+selected*indicatorHeight, 2, indicatorHeight, black)
-			fillRect(WIDTH-2, 48+(selected-1)*indicatorHeight, 2, indicatorHeight, white)
-			display.Display()
+			drawSidebarContainer(indicatorHeight)
+		case btnC.Get():
+			drawLargeScreen()
+			drawBadgeBackground()
+			drawSidebarContainer(indicatorHeight)
 		default:
 			time.Sleep(200 * time.Millisecond)
 		}
 	}
 }
 
-func drawSidebar(label string, img []uint8) {
+func drawSidebarContainer(indicatorHeight int16) {
+	drawSidebarItem(sidebar[selected].label, sidebar[selected].img)
+	fillRect(WIDTH-2, 48, 2, HEIGHT-48, white)
+	fillRect(WIDTH-2, 48+selected*indicatorHeight, 2, indicatorHeight, black)
+	display.Display()
+	display.WaitUntilIdle()
+}
+
+func drawLargeScreen() {
+	display.ClearDisplay()
+	item := sidebar[selected].largeItem
+	display.DrawBuffer(item.imgX, item.imgY, item.imgWidth, item.imgHeight, item.img)
+	if item.label != "" {
+		rightJustifyText(item.label, item.labelX0, item.labelX1, item.labelY, black, sansBoldObliqueFont...)
+	}
+	if item.labelBottom != "" {
+		fillRect(0, HEIGHT-24, WIDTH, 24, black)
+		_ = fitTextToWidth(item.labelBottom, 0, WIDTH, HEIGHT-8, white, &freesans.Regular9pt7b)
+	}
+	display.Display()
+	display.WaitUntilIdle()
+	for {
+		if btnA.Get() || btnB.Get() || btnC.Get() || btnUp.Get() || btnDown.Get() {
+			return
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+
+func drawSidebarItem(label string, img []uint8) {
 	const (
 		headerStart = rMargin - 4
 		headerWidth = WIDTH - headerStart
@@ -165,26 +261,29 @@ func drawSidebar(label string, img []uint8) {
 	display.DrawBuffer(HEIGHT-80, 6, 80, 80, img)
 }
 
-const qrSize = 80
+const (
+	qrSmSize = 80
+	qrLgSize = 104
+)
 
-func qrToBuffer(context string) []uint8 {
+func qrToBuffer(context string, size int) []uint8 {
 	q, err := qrcode.New(context, qrcode.Medium)
 	if err != nil {
 		panic(err)
 	}
 	q.DisableBorder = true
 
-	return ditherImage(q.Image(qrSize))
+	return ditherImage(q.Image(size))
 }
 
-func qrToImage(content string) pixel.Image[pixel.Monochrome] {
+func qrToImage(content string, size int) pixel.Image[pixel.Monochrome] {
 	q, err := qrcode.New(content, qrcode.Medium)
 	if err != nil {
 		panic(err)
 	}
 	q.DisableBorder = true
-	img := pixel.NewImage[pixel.Monochrome](qrSize, qrSize)
-	qr := q.Image(qrSize)
+	img := pixel.NewImage[pixel.Monochrome](size, size)
+	qr := q.Image(size)
 	for y := range qr.Bounds().Dy() {
 		for x := range qr.Bounds().Dx() {
 			img.Set(x, y, qr.At(x, y) == color.Black)
@@ -199,6 +298,11 @@ func fitTextToWidth(text string, x0, x1, y int16, c color.RGBA, fonts ...*tinyfo
 	tinyfont.WriteLine(&display, f, x0+(x1-int16(w32))/2, y, text, c)
 
 	return f
+}
+
+func rightJustifyText(text string, x0, x1, y int16, c color.RGBA, fonts ...*tinyfont.Font) {
+	w32, f := lineWidth(text, uint32(x1-x0), fonts...)
+	tinyfont.WriteLine(&display, f, x1-int16(w32), y, text, c)
 }
 
 func lineWidth(text string, maxWidth uint32, fonts ...*tinyfont.Font) (uint32, *tinyfont.Font) {
