@@ -263,7 +263,7 @@ func drawSidebarItem(label string, img []uint8) {
 
 const (
 	qrSmSize = 80
-	qrLgSize = 104
+	qrLgSize = 80
 )
 
 func qrToBuffer(context string, size int) []uint8 {
